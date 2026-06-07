@@ -2815,3 +2815,295 @@ Loved the design and usability,positive
 Disappointed with the overall experience,negative
 			
 
+
+							
+######################
+Day 8 - 7th June 2026
+######################	
+
+	Phase 3:
+	
+	8. Automate Build and Deployment to Kubernetes using github-actions workflow--> CI/CD Pipeline
+	
+	9. Monitor using Kubeflow(Deployment & Monitor) MLFlow / Prometheus / Grafana 
+	
+	10. Explore MLOps on AWS Cloud using AWS Sagemaker-AI	
+
+
+
+	- Continuous Monitoring using Prometheus/Grafana :::
+	
+		-> Architecture of the Monitoring Tools / Services:
+		
+			--> Client & Server Architecture:
+			
+				-> Monitoring Server(VM) - Install Monitoring Tools 
+				
+					-> Target Servers - Install Monitoring Agents 
+					
+					
+			--> Prometheus is the Monitoring Tool
+
+			--> Grafana is the Visualization Tool 
+			
+			--> Prometheus act as the Data Source to Grafana
+					
+		
+		-> Setup Monitoring Tools 
+		
+			- HELM :::	https://helm.sh/docs/intro/install/
+			
+				- Helm is the Package Manager for Kubernetes 
+				
+				- Setup up the Monitoring Services - Prometheus/Grafana
+					--> Monitor the Kubernetes Cluster
+				
+				
+				- Kubernetes Dashboards	==> Monitor Kubernetes Pods & Services  
+					--> Monitor Pods executions 
+					--> Schedule pod deployments 
+					--> Scale-Up/Down 
+				
+			- Setup Kubeflow :
+			
+				-->	Deploy the ML Model on Kubernetes Cluster. 
+
+				--> Using Kubeflow Dashboard we can deploy *.yaml
+				
+	
+		-> Create Monitoring Dashboards
+		
+		
+		Infra-Structure Monitoring :
+		
+			-> CPU / Memory / Network / Pods / Deployment / Services  
+			
+
+				
+			
+				
+	- Automate Build and Deployment to Kubernetes using github-actions workflow--> CI/CD Pipeline		
+		
+		
+		- Pre-requisites :
+		
+			- Agent :
+			
+				-> GitHub Managed Agent :::
+					- Used to build and create artifacts
+			
+				-> Self Hosted Agent :::
+				
+					- Target Servers ==> Test_Server / K3s Single-Node Cluster / Kubeadm - Multi-Node Cluster
+	
+
+
+			- Enviroment Variables :
+			
+				- Docker_Hub Credentials
+				
+				- Kubeadm Token / Secret Keys 
+				
+			
+			- Create GitHub-Actions Workflow 
+			
+				- *.yaml ==> Based the Job definitions.
+
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  # =============================
+  # JOB 1: Build & Push Images
+  # =============================
+  build:
+    name: Build & Push to DockerHub
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2️⃣ Login to DockerHub
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # 3️⃣ Build API image
+    - name: Build API Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/loksai-mlops830api:latest -f docker/Dockerfile.api .
+
+    # 4️⃣ Build UI image
+    - name: Build UI Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/loksai-mlops830ui:latest -f docker/Dockerfile.ui .
+
+    # 5️⃣ Push API image
+    - name: Push API image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/loksai-mlops830api:latest
+
+    # 6️⃣ Push UI image
+    - name: Push UI image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/loksai-mlops830ui:latest
+
+  # =============================
+  # JOB 2: Deploy to Kubernetes
+  # =============================
+  deploy:  
+    name: Deploy to Kubernetes
+    runs-on: self-hosted
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.USER_KUBE_CONFIG_DATA }}" > ~/.kube/config
+
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/api-deployment.yaml
+
+
+
+		Github-Actions :::::
+	
+	Automate the Model Creation and Containerization using CICD Workflow - github-actions workflow.
+	
+	Setup-self-hosted Agent on github
+	
+		- Build_Server 
+		- Deployment Server 
+	
+	Deploy using Kubernetes 
+	
+		1. Launch a Target Server / Kubernetes Cluster & Attach IAM Role for S3.
+		2. Open all the required ports 
+		3. Login and Install the required packages
+				- Docker / K3s/Minikube/Kubeadm 
+
+
+			Use AWS Ubuntu - 22.04V AMI 
+			
+			- sudo -i 
+			
+			- apt update -y  
+			
+			- curl -sfL https://get.k3s.io | sh -
+			
+			- sudo systemctl status k3s
+			
+			- kubectl get nodes 
+
+			
+				- Install unzip utility / curl 
+				
+				- Install aws-cli 
+				
+sudo -i
+
+apt install unzip curl
+
+METHOD 1 — Install AWS CLI v2 (Recommended)
+
+AWS CLI v2 is the latest, stable version.
+
+Step 1 — Download the installer
+cd /tmp
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+
+Step 2 — Unzip
+sudo apt install -y unzip
+unzip awscliv2.zip
+
+Step 3 — Install
+sudo ./aws/install
+
+Step 4 — Verify
+aws --version
+
+
+You should see something like:
+
+aws-cli/2.18.x Python/3.x.x Linux/x86_64
+
+					
+		4. Setup the Credentials:
+			- Create linux user - devopsadminuser
+				- valid Credentials - 
+					 Recommended to have ssh-key - public_Key & Private Keys 
+
+#Add User : 
+
+useradd devopsadmin -s /bin/bash -m -d /home/devopsadmin
+
+su - devopsadmin
+
+#ssh-keygen
+
+#for Ubuntu ::
+#ssh-keygen -t rsa -b 2048 -m PEM								#ubuntu 20.04
+
+ssh-keygen -t ecdsa -b 521										#ubuntu 22.04 or higher version of ubuntu				
+
+
+ls ~/.ssh 
+
+#You should see following two files:
+
+#id_ecdsa - private key
+#id_ecdsa.pub - public
+
+
+#cat id_rsa.pub > authorized_keys
+
+cat id_ecdsa.pub > authorized_keys
+
+chmod 600 /home/devopsadmin/.ssh/*
+
+					 
+				- Enable user access to kubernetes Master 
+				
+					- Create .kube/config under user's home dir. 
+					- Use this user's kube/config file content as token for Authentication on github runner.
+
+root: visudo 
+					
+devopsadmin ALL=(ALL) NOPASSWD: ALL
+
+save & exit
+
+su - devopsadmin
+
+mkdir -p $HOME/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
+sudo chown $USER:$USER $HOME/.kube/config
+
+export KUBECONFIG=$HOME/.kube/config
+echo 'export KUBECONFIG=$HOME/.kube/config' >> ~/.bashrc
+
+kubectl get nodes
+										
+cat /home/devopsadmin/.kube/config 			# create Repository Secret in pipeline
+
+					
+		5. Setup github self-hosted action-runner
+		
+			- Goto the Repo level setting 
+			- Actions -> Runner 
+			- Create Runner based on the OS & follow the instructions. 
+
+
+
